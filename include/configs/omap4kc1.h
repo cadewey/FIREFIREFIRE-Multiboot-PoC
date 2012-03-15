@@ -147,6 +147,7 @@
 
 #define CONFIG_BOOTCOMMAND "setgreenled ff; booti mmc1"
 #define CONFIG_RECOVERYCMD "setgreenled ff; setamberled ff; booti mmc1 recovery"
+#define CONFIG_ALTBOOTCMD "setgreenled ff; booti mmc1 boot2"
 
 //#define CONFIG_BOOTCOMMAND "mmcinit 0; fatload mmc 0 0x80000000 uImage;bootm 80000000"
 
@@ -248,7 +249,7 @@
 #define CFG_FASTBOOT_TRANSFER_BUFFER_SIZE (SZ_512M - SZ_48M)
 
 #define CONFIG_FREE_LOG_BASE     0x9CAB0000
-#define CFG_FASTBOOT_COUNTDOWN   1000000
+#define CFG_FASTBOOT_COUNTDOWN   500000
 /*-----------------------------------------------------------------------
  * CFI FLASH driver setup
  */

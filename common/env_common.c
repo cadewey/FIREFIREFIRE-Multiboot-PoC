@@ -75,6 +75,9 @@ uchar default_environment[] = {
 #ifdef  CONFIG_RECOVERYCMD
         "recoverycmd="  CONFIG_RECOVERYCMD              "\0"
 #endif
+#ifdef CONFIG_ALTBOOTCMD
+	"altbootcmd="	CONFIG_ALTBOOTCMD		"\0"
+#endif
 #ifdef	CONFIG_RAMBOOTCOMMAND
 	"ramboot="	CONFIG_RAMBOOTCOMMAND		"\0"
 #endif

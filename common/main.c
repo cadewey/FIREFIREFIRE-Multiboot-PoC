@@ -438,6 +438,16 @@ void main_loop (void)
                 s = getenv("recoverycmd");
            }
 #endif
+#if defined(CONFIG_ALTBOOTCMD)
+#if defined(CONFIG_RECOVERYCMD)
+else
+#endif
+	if (fastboot_wait_power_button_abort == 2)
+	{
+		printf("Booting alternate boot partition\n");
+		s = getenv("altbootcmd");
+	}
+#endif
            else {
                 if(bootmode >>12 == 0x8){
                         s = Q_BOOTCOMMAND;

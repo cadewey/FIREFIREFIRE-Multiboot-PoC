@@ -70,6 +70,10 @@
 extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 extern void do_powerdown (void);
 
+extern void show_splash();
+extern void show_recovery_splash();
+extern void show_boot2_splash();
+
 #if (CONFIG_MMC)
 extern int do_mmc(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 #endif
@@ -1472,8 +1476,25 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 				if (!(fastboot_countdown % 50000) &&
 						(0 == twl6030_get_power_button_status())) {
-					fastboot_wait_power_button_abort = 1;
-					break;
+					fastboot_wait_power_button_abort = (fastboot_wait_power_button_abort + 1) % 3;
+					fastboot_countdown = CFG_FASTBOOT_COUNTDOWN; //Reset the countdown
+					
+					switch (fastboot_wait_power_button_abort)
+					{
+						case 0:
+							show_splash();
+							break;
+						case 1:
+							show_recovery_splash();
+							break;
+						case 2:
+							show_boot2_splash();
+							break;
+						default:
+							//??? How did this happen ???
+							show_splash();
+							break;
+					}
 				}
 			}
 		}else{
@@ -1484,6 +1505,17 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			}
 		}
 	}
+
+	/*if (fastboot_wait_power_button_abort == 2)
+	{
+		//Drop into a continuous fastboot loop since the user selected it explicitly
+		//(Basically behave like bootmode had been 4002)
+		while (1)
+		{
+			if (fastboot_poll())
+				break;
+		}
+	}*/
 
 	/* Reset the board specific support */
 	fastboot_shutdown();
