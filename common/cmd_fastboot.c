@@ -908,6 +908,17 @@ static int rx_handler (const unsigned char *buffer, unsigned int buffer_size)
 				goto done;
 			}
 
+			/* fastboot oem dualboot */
+			if(memcmp(cmdbuf, "dualformat", 10) == 0) {
+				ret = fastboot_oem(cmdbuf);
+				if (ret < 0) {
+					strcpy(response,"FAIL");
+				} else {
+					strcpy(response,"OKAY");
+				}
+				goto done;
+			}
+
 			/* fastboot oem recovery */
 			if(memcmp(cmdbuf, "recovery", 8) == 0){
 				sprintf(response,"OKAY");
@@ -1477,7 +1488,7 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				if (!(fastboot_countdown % 50000) &&
 						(0 == twl6030_get_power_button_status())) {
 					fastboot_wait_power_button_abort = (fastboot_wait_power_button_abort + 1) % 3;
-					fastboot_countdown = CFG_FASTBOOT_COUNTDOWN; //Reset the countdown
+					fastboot_countdown = CFG_FASTBOOT_COUNTDOWN_RESET; //Reset the countdown (2.5 secs)
 					
 					switch (fastboot_wait_power_button_abort)
 					{

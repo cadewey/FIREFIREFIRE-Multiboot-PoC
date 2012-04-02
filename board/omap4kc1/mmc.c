@@ -252,9 +252,30 @@ static struct partition partitions[] = {
 	{ 0, 0 },
 };
 
+static struct partition dualboot_partitions[] = {
+	{ "-", 128 },			//GPT
+	{ "xloader", 128 },		//p1
+	{ "bootloader", 256 },		//p2
+	{ "dfkernel", 10*1024 },	//p3
+	{ "dfs", 192*1024 },		//p4
+	{ "recovery", 16*1024 },	//p5
+	{ "backup", 64*1024 },		//p6
+	{ "boot", 10*1024 },		//p7
+	{ "splash", 5*1024 },		//p8
+	{ "system", 512*1024 },		//p9
+	{ "userdata", 1137*1024 },	//p10
+	{ "cache", 256*1024 },		//p11
+	{ "media", 3742*1024 },		//p12
+	{ "boot2", 11*1024 },		//p13
+	{ "system2", 450*1024 },	//p14
+	{ "cache2", 128*1024 },		//p15
+	{ "userdata2", 800*1024 },	//p16
+	{ 0, 0 }
+};
+
 static struct ptable the_ptable;
 
-static int do_format(void)
+static int do_dual_format(void)
 {
 	struct ptable *ptbl = &the_ptable;
 	unsigned sector_sz, blocks;
@@ -272,15 +293,15 @@ static int do_format(void)
 	start_ptbl(ptbl, blocks);
 	n = 0;
 	next = 0;
-	for (n = 0, next = 0; partitions[n].name; n++) {
-		unsigned sz = partitions[n].size_kb * 2;
-		if (!strcmp(partitions[n].name,"-")) {
+	for (n = 0, next = 0; dualboot_partitions[n].name; n++) {
+		unsigned sz = dualboot_partitions[n].size_kb * 2;
+		if (!strcmp(dualboot_partitions[n].name,"-")) {
 			next += sz;
 			continue;
 		}
 		if (sz == 0)
 			sz = blocks - next;
-		if (add_ptn(ptbl, next, next + sz - 1, partitions[n].name))
+		if (add_ptn(ptbl, next, next + sz - 1, dualboot_partitions[n].name))
 			return -1;
 		next += sz;
 	}
@@ -296,10 +317,54 @@ static int do_format(void)
 	return 0;
 }
 
+static int do_format(void)
+{
+        struct ptable *ptbl = &the_ptable;
+        unsigned sector_sz, blocks;
+        unsigned next;
+        int n;
+
+        if (mmc_init(1)) {
+                printf("mmc init failed?\n");
+//              return -1;
+        }
+
+        mmc_info(1, &sector_sz, &blocks);
+        printf("blocks %d\n", blocks);
+
+        start_ptbl(ptbl, blocks);
+        n = 0;
+        next = 0;
+        for (n = 0, next = 0; partitions[n].name; n++) {
+                unsigned sz = partitions[n].size_kb * 2;
+                if (!strcmp(partitions[n].name,"-")) {
+                        next += sz;
+                        continue;
+                }
+                if (sz == 0)
+                        sz = blocks - next;
+                if (add_ptn(ptbl, next, next + sz - 1, partitions[n].name))
+                        return -1;
+                next += sz;
+        }
+        end_ptbl(ptbl);
+
+        fastboot_flash_reset_ptn();
+        if (mmc_write(1, (void*) ptbl, 0, sizeof(struct ptable)) != 1)
+                return -1;
+
+        printf("\nnew partition table:\n");
+        load_ptbl();
+
+        return 0;
+}
+
 int fastboot_oem(const char *cmd)
 {
 	if (!strcmp(cmd,"format"))
 		return do_format();
+	else if (!strcmp(cmd,"dualformat"))
+		return do_dual_format();
 	return -1;
 }
 
