@@ -445,11 +445,9 @@ void initialize_lcd(int show_what)
 	__raw_writew(__raw_readw(0x4805513C) | 0x0020, 0x4805513C);//gpio_dataout gpio37
 
 	show_black_data();
-#if 0
         if(show_what==OTTER_LCD_DISPLAY_LOW_BATT_SCREEN)
             show_lowbattery();
         else
-#endif
 	    show_splash();
 	lcd_config();
 
@@ -460,6 +458,8 @@ void initialize_lcd(int show_what)
 extern char const _binary_lowbattery_gz_start[];
 extern char const _binary_lowbattery_gz_end[];
 #endif
+extern char const _binary_lowbattery_rle_start[];
+extern char const _binary_lowbattery_rle_end[];
 
 void lbt_datainit(void)
 {
@@ -479,6 +479,33 @@ void show_lowbattery(void)
     unsigned char *src_addr = (unsigned char *)0x81000000;
     memcpy(target_addr ,src_addr , dst_len);
 #endif
+	u_int16_t *target_addr = (u_int16_t *)framebuffer;
+	u_int16_t *start = (u_int16_t *)_binary_lowbattery_rle_start;
+	u_int16_t *end = (u_int16_t *)_binary_lowbattery_rle_end;
+
+	/* Convert the RLE data into RGB565 */
+	for (; start != end; start += 2) {
+		u_int16_t count = start[0];
+
+		while (count--) {
+			*target_addr++ = start[1];
+		}
+	}
+
+	/* Compute position and size of logo */
+	g_LogoX = 0;
+	g_LogoY = 0;
+	g_LogoW = LCD_WIDTH;
+	g_LogoH = LCD_HEIGHT;
+
+	/* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
+	__raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
+	/* CM_SSC_DELTAMSTEP_DPLL_PER */
+	__raw_writew(0XCC , 0x4A008168);
+	/* CM_SSC_MODFREQDIV_DPLL_PER */
+	__raw_writew(0X264 , 0x4A00816C);
+	/* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
+	__raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
 	return;
 }
 

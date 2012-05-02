@@ -250,7 +250,7 @@
 
 #define CONFIG_FREE_LOG_BASE     0x9CAB0000
 #define CFG_FASTBOOT_COUNTDOWN   500000
-#define CFG_FASTBOOT_COUNTDOWN_RESET	250000
+#define CFG_FASTBOOT_COUNTDOWN_RESET	500000
 /*-----------------------------------------------------------------------
  * CFI FLASH driver setup
  */

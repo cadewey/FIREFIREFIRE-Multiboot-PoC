@@ -28,7 +28,7 @@ include $(TOPDIR)/config.mk
 LIB	= lib$(BOARD).a
 
 #OBJS	:= omap4kc1.o mmc.o splash.o lowbattery.o
-OBJS	:= omap4kc1.o mmc.o splash.o normalboot.o recoveryboot.o boot2.o booting.o
+OBJS	:= omap4kc1.o mmc.o splash.o lowbattery.o normalboot.o recoveryboot.o boot2.o booting.o
 
 $(LIB):	$(OBJS)
 	$(AR) crv $@ $^
@@ -50,6 +50,9 @@ boot2.o:
 
 booting.o:
 	$(OBJCOPY) -I binary -O elf32-littlearm -B arm booting.rle $@
+
+lowbattery.o:
+	$(OBJCOPY) -I binary -O elf32-littlearm -B arm lowbattery.rle $@
 
 #lowbattery.o:
 #	$(OBJCOPY) -I binary -O elf32-littlearm -B arm lowbattery.gz $@

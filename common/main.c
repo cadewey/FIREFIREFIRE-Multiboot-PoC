@@ -385,7 +385,8 @@ void main_loop (void)
 #ifdef CONFIG_AUTO_COMPLETE
 	install_auto_complete();
 #endif
-	if (fastboot_preboot())
+	/* Always run fastboot */
+//	if (fastboot_preboot())
 		run_command("fastboot", 0);
 
 #ifdef CONFIG_PREBOOT
