@@ -427,48 +427,48 @@ void main_loop (void)
 	else
 	
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
-       {
-           //Read the boot command block
-           printf("Read bootmode from the eMMC\n");
-           bootmode = getbootmode();
-           postmode = getpostmode();
-           printf("bootmode = '0x%016X'\n", bootmode);
-
-#if defined(CONFIG_RECOVERYCMD)       
-           if(((bootmode & 0xF000) == 0x5000) ||
-			(fastboot_wait_power_button_abort == 1)) {
-                printf("Entering into recovery mode !!! \n");
-                s = getenv("recoverycmd");
-           }
-           else if(postmode == 1){
-                printf("Entering into single-use recovery mode !!! \n");
-                s = getenv("recoverycmd");
-                clear_postmode();
-           }
-#endif
-#if defined(CONFIG_ALTBOOTCMD)
-#if defined(CONFIG_RECOVERYCMD)
-else
-#endif
-	if (fastboot_wait_power_button_abort == 2)
 	{
-		printf("Booting alternate boot partition\n");
-		s = getenv("altbootcmd");
-	}
+		//Read the boot command block
+		printf("Read bootmode from the eMMC\n");
+		bootmode = getbootmode();
+		postmode = getpostmode();
+		printf("bootmode = '0x%016X'\n", bootmode);
+
+		if(fastboot_wait_power_button_abort == 2){
+			printf("Resetting bootmode to normal\n");
+			fastboot_idme("bootmode 4000");
+			s = getenv ("bootcmd");
+		}
+#if defined(CONFIG_ALTBOOTCMD)
+		else if (fastboot_wait_power_button_abort == 3) {
+			printf("Booting alternate boot partition\n");
+			s = getenv("altbootcmd");
+		}
 #endif
-           else {
-                if(bootmode >>12 == 0x8){
-                        s = Q_BOOTCOMMAND;
-                }else{
-                        s = getenv ("bootcmd");
-                }
-                if(fastboot_wait_power_button_abort == 2){
-                    printf("Resetting bootmode to normal\n");
-                    fastboot_idme("bootmode 4000");
-                }
-                //printf ("==bootmode=%x bootcmd=\"%s\"\n",getbootmode(), s ? s : "<UNDEFINED>");
-           }
-       }
+		if(fastboot_wait_power_button_abort == 0){
+			printf("Normal boot\n");
+			s = getenv ("bootcmd");
+		}
+		else if(bootmode >>12 == 0x8){
+			s = Q_BOOTCOMMAND;
+		}
+#if defined(CONFIG_RECOVERYCMD)       
+		else if(postmode == 1){
+			printf("Entering into single-use recovery mode !!! \n");
+			s = getenv("recoverycmd");
+			clear_postmode();
+		}
+		else if(((bootmode & 0xF000) == 0x5000) ||
+			(fastboot_wait_power_button_abort == 1)) {
+			printf("Entering into recovery mode !!! \n");
+			s = getenv("recoverycmd");
+		}
+#endif
+		else {
+			s = getenv ("bootcmd");
+		}
+	}
+
 	debug ("### main_loop: command=\"%s\"\n", s ? s : "<UNDEFINED>");
 
 	if (bootdelay >= 0 && s && !abortboot (bootdelay)) {

@@ -1476,6 +1476,8 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		/* On disconnect or error, polling returns non zero */
 		/* Always delay for fastboot unless we're in bootmode 4002 
 		 * or using the "factory" cable */
+		int fastbootmode_or_poweredcable = ((0x4002 == val) || (__raw_readl(0x48055138) & 0x00100000));
+
 		while (fastboot_countdown)
 		{
 			if (!fastboot_confirmed) {
@@ -1491,7 +1493,9 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 			if (!(fastboot_countdown % 50000)) {
 				if (0 == twl6030_get_power_button_status()) {
+					/* user has pressed the power button, so we start the timer (even in fastboot mode) */
 					button_press = 1;
+
 					fastboot_wait_power_button_abort = ((fastboot_wait_power_button_abort + 1) % 3);
 					fastboot_countdown = CFG_FASTBOOT_COUNTDOWN_RESET; //Reset the countdown (2.5 secs)
 				
@@ -1513,7 +1517,7 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 					}
 				}
 			}
-			if((!fastboot_countdown) && ((0x4002 == val) || (__raw_readl(0x48055138) & 0x00100000)) && (button_press == 0)){
+			if((!fastboot_countdown) && (fastbootmode_or_poweredcable) && (button_press == 0)){
 				/* reset countdown to hold fastboot */
 				fastboot_countdown = CFG_FASTBOOT_COUNTDOWN_RESET; //Reset the countdown (2.5 secs)
 			}
@@ -1540,6 +1544,12 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
         printf ("setting boot sequence first to USB.\nreboot...\n");
         set_SWBootingCfg();		
 	}
+
+	/* if the button was never pressed then handle this by setting the button_abort to a non-used # */
+	if (button_press == 0) {
+		fastboot_wait_power_button_abort = 100;
+	}
+
 	return ret;
 }
 
