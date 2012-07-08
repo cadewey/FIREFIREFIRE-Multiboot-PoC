@@ -125,6 +125,35 @@ unsigned long getbootmode(void){
 	return value;
 }
 
+unsigned long getpostmode(void);
+
+unsigned long getpostmode(void){
+	int slot_no = 1;	//1 for EMMC;
+	unsigned char* buffer = NULL;
+	int offset;
+	unsigned long value;
+	//1. init mmc_slot 1 (emmc)
+	if (mmc_init(slot_no) != 0){
+		printf("init mmc failed!");
+		return 1;
+	}
+			
+	//2. switch to access boot partition 1
+	mmc_sw_part(slot_no, 1);
+		
+	//3. allocate memory 	
+	buffer = (unsigned char*)malloc(MMC_BLOCK_SIZE);
+	
+	//printf("address of buffer = 0x%x\n",buffer);	//debug
+		
+	mmc_read(slot_no, (nvram_info[5].offset / MMC_BLOCK_SIZE)/*page_number*/,buffer, 1/*1 page*/);
+	offset=nvram_info[5].offset % MMC_BLOCK_SIZE;
+	//printf("============%x\n",simple_strtoul(buffer, NULL, 16));
+	value=simple_strtoul(buffer+offset, NULL, 16);
+	free(buffer);
+	return value;
+}
+
 unsigned long get_bootcounter(void);
 
 unsigned long get_bootcounter(void){
@@ -451,6 +480,12 @@ int set_emmc(const char *cmd){
 int set_product(const char *cmd){
     char *idme[3]  = {"idme", "product", cmd};
     return do_rw_bp1(NULL, 0, 3, idme);
+}
+
+int clear_postmode(){
+    char *idme[3]  = {"idme", "postmode", "0"};
+    int i=3;
+    return do_rw_bp1 (NULL, 0, i, idme);
 }
 
 U_BOOT_CMD(mmcinit, 6, 1, do_mmc,

@@ -71,6 +71,7 @@ extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 extern void do_powerdown (void);
 
 extern void show_splash();
+extern void show_normalboot_splash();
 extern void show_recovery_splash();
 extern void show_boot2_splash();
 
@@ -1475,9 +1476,9 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		if((0x4002 != val) && !(__raw_readl(0x48055138) & 0x00100000)){
 			while (fastboot_countdown)
 			{
-	            if (!fastboot_confirmed) {
-                   fastboot_countdown--;
-                }
+				if (!fastboot_confirmed) {
+				fastboot_countdown--;
+				}
 				if (fastboot_poll())
 					break;
 				/* if we're holding down the button to get into
@@ -1487,13 +1488,14 @@ int do_fastboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 				if (!(fastboot_countdown % 50000) &&
 						(0 == twl6030_get_power_button_status())) {
-					fastboot_wait_power_button_abort = (fastboot_wait_power_button_abort + 1) % 3;
+
+					fastboot_wait_power_button_abort = ((fastboot_wait_power_button_abort + 1) % 3);
 					fastboot_countdown = CFG_FASTBOOT_COUNTDOWN_RESET; //Reset the countdown (2.5 secs)
 					
 					switch (fastboot_wait_power_button_abort)
 					{
 						case 0:
-							show_splash();
+							show_normalboot_splash();
 							break;
 						case 1:
 							show_recovery_splash();

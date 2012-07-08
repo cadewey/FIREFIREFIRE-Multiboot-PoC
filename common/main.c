@@ -322,6 +322,7 @@ void main_loop (void)
 #endif
 
         unsigned long bootmode;
+        unsigned long postmode;
 
 #if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
 	char *s;
@@ -429,6 +430,7 @@ void main_loop (void)
            //Read the boot command block
            printf("Read bootmode from the eMMC\n");
            bootmode = getbootmode();
+           postmode = getpostmode();
            printf("bootmode = '0x%016X'\n", bootmode);
 
 #if defined(CONFIG_RECOVERYCMD)       
@@ -436,6 +438,11 @@ void main_loop (void)
 			(fastboot_wait_power_button_abort == 1)) {
                 printf("Entering into recovery mode !!! \n");
                 s = getenv("recoverycmd");
+           }
+           else if(postmode == 1){
+                printf("Entering into single-use recovery mode !!! \n");
+                s = getenv("recoverycmd");
+                clear_postmode();
            }
 #endif
 #if defined(CONFIG_ALTBOOTCMD)
@@ -451,8 +458,12 @@ else
            else {
                 if(bootmode >>12 == 0x8){
                         s = Q_BOOTCOMMAND;
-				}else{
-					s = getenv ("bootcmd");
+                }else{
+                        s = getenv ("bootcmd");
+                }
+                if(fastboot_wait_power_button_abort == 2){
+                    printf("Resetting bootmode to normal\n");
+                    fastboot_idme("bootmode 4000");
                 }
                 //printf ("==bootmode=%x bootcmd=\"%s\"\n",getbootmode(), s ? s : "<UNDEFINED>");
            }
