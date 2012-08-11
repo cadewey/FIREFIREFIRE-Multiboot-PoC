@@ -434,18 +434,16 @@ void main_loop (void)
 		postmode = getpostmode();
 		printf("bootmode = '0x%016X'\n", bootmode);
 
-		if(fastboot_wait_power_button_abort == 2){
+		if(fastboot_wait_power_button_abort == 3){
 			printf("Resetting bootmode to normal\n");
 			fastboot_idme("bootmode 4000");
 			s = getenv ("bootcmd");
 		}
-#if defined(CONFIG_ALTBOOTCMD)
-		else if (fastboot_wait_power_button_abort == 3) {
+		else if (fastboot_wait_power_button_abort == 2) {
 			printf("Booting alternate boot partition\n");
 			s = getenv("altbootcmd");
 		}
-#endif
-		if(fastboot_wait_power_button_abort == 0){
+		else if(fastboot_wait_power_button_abort == 0){
 			printf("Normal boot\n");
 			s = getenv ("bootcmd");
 		}

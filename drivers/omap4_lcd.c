@@ -471,43 +471,6 @@ void lbt_datainit(void)
 #endif
     return;
 }
-void show_lowbattery(void)
-{
-#if 0
-	u_int16_t *target_addr = (u_int16_t *)framebuffer;
-    unsigned long dst_len = 1024*600*2;
-    unsigned char *src_addr = (unsigned char *)0x81000000;
-    memcpy(target_addr ,src_addr , dst_len);
-#endif
-	u_int16_t *target_addr = (u_int16_t *)framebuffer;
-	u_int16_t *start = (u_int16_t *)_binary_lowbattery_rle_start;
-	u_int16_t *end = (u_int16_t *)_binary_lowbattery_rle_end;
-
-	/* Convert the RLE data into RGB565 */
-	for (; start != end; start += 2) {
-		u_int16_t count = start[0];
-
-		while (count--) {
-			*target_addr++ = start[1];
-		}
-	}
-
-	/* Compute position and size of logo */
-	g_LogoX = 0;
-	g_LogoY = 0;
-	g_LogoW = LCD_WIDTH;
-	g_LogoH = LCD_HEIGHT;
-
-	/* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
-	__raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
-	/* CM_SSC_DELTAMSTEP_DPLL_PER */
-	__raw_writew(0XCC , 0x4A008168);
-	/* CM_SSC_MODFREQDIV_DPLL_PER */
-	__raw_writew(0X264 , 0x4A00816C);
-	/* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
-	__raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
-	return;
-}
 
 extern char const _binary_initlogo_rle_start[];
 extern char const _binary_initlogo_rle_end[];
@@ -519,12 +482,12 @@ extern char const _binary_boot2_rle_start[];
 extern char const _binary_boot2_rle_end[];
 extern char const _binary_booting_rle_start[];
 extern char const _binary_booting_rle_end[];
+extern char const _binary_resetboot_rle_start[];
+extern char const _binary_resetboot_rle_end[];
 
-void show_splash(void)
+void show_splash_image(u_int16_t *start, u_int16_t *end)
 {
 	u_int16_t *target_addr = (u_int16_t *)framebuffer;
-	u_int16_t *start = (u_int16_t *)_binary_normalboot_rle_start;
-	u_int16_t *end = (u_int16_t *)_binary_normalboot_rle_end;
 
 	/* Convert the RLE data into RGB565 */
 	for (; start != end; start += 2) {
@@ -541,40 +504,7 @@ void show_splash(void)
 	g_LogoW = LCD_WIDTH;
 	g_LogoH = LCD_HEIGHT;
 
-	/*
-        CM_CLKSEL2_PLL (0x48004D44)
-        (b19~b8)PERIPH_DPLL_MULT = 432 (M)
-        (b6~b0)PERIPH_DPLL_DIV = 12 (N)
 
-        CM_CLKSEL_DSS (0x48004E40) 
-        (b5~b0)CLKSEL_DSS1 = 5 (M4)
-
-	Fin = 26MHz
-        Fout = fc = 26(MHz)*M/(N+1)/M4 = 172.8MHz (PER_PLL)
-	Fm (max) < Fref / 70 = 28.57KHz
-	Set Fm = 28KHz
-	Deviation = (fm/fc) x 10^(PPR/10) = (28k/172.8M) x 10^1 = 0.16%
-	Δf = 0.28MHz
-	ΔM = M (Δf/fc) = 432 x (1.6/1000) = 0.7
-	0.7 x 2^18 = 183500.8 ~ 183501
-	Fref/(4 x fm) = 2M/(4x0.028) = 17.857 = 18 x 2^0
-	
-	R_PER_DELTA_M_INT = 0
-	R_PER_DELTA_M_FRACT = 0x2CCCD
-	R_PER_MOD_FREQ_EXP = 0x12
-	R_PER_MOD_FREQ_MANT = 0
-	*/
-        //printf("Last 3 \n");
-	//SETREG32(0x4a008168, 0x00000000); //CM_SSC_DELTAMSTEP_DPLL_PER
-        //printf("Last 2 \n");
-	//SETREG32(0x4a00816c, 0x00000000 ); //CM_SSC_MODFREQDIV_DPLL_PER
-        //printf("Last 1 \n");
-	//SETREG32(0x4a008140, 1<<12);//CM_CLKMODE_DPLL_PER
-        //printf("Last 0 \n");
-	/* 	f_inp=38.4MHz,M=20,N=0,M5=10,LCD=1,PCD=3
-		DISPC2_PCLK=38.4*20/(0+1)*2/10/1/3=51.2MHz
-		f_c=f_inp*M*2/((N+1)*M5)=38.4M*20*2/((0+1)*10)
-	*/
 	/* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
 	__raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
 	/* CM_SSC_DELTAMSTEP_DPLL_PER */
@@ -587,140 +517,39 @@ void show_splash(void)
 	return;
 }
 
+void show_lowbattery(void)
+{
+	show_splash_image((u_int16_t *)_binary_lowbattery_rle_start, (u_int16_t *)_binary_lowbattery_rle_end);
+}
+
+void show_splash(void)
+{
+	show_splash_image((u_int16_t *)_binary_initlogo_rle_start, (u_int16_t *)_binary_initlogo_rle_end);
+}
+
 void show_normalboot_splash(void)
 {
-        u_int16_t *target_addr = (u_int16_t *)framebuffer;
-        u_int16_t *start = (u_int16_t *)_binary_normalboot_rle_start;
-        u_int16_t *end = (u_int16_t *)_binary_normalboot_rle_end;
-
-        /* Convert the RLE data into RGB565 */
-        for (; start != end; start += 2) {
-                u_int16_t count = start[0];
-
-                while (count--) {
-                        *target_addr++ = start[1];
-                }
-        }
-
-        /* Compute position and size of logo */
-        g_LogoX = 0;
-        g_LogoY = 0;
-        g_LogoW = LCD_WIDTH;
-        g_LogoH = LCD_HEIGHT;
-		
-		
-        /* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
-        __raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
-        /* CM_SSC_DELTAMSTEP_DPLL_PER */
-        __raw_writew(0XCC , 0x4A008168);
-        /* CM_SSC_MODFREQDIV_DPLL_PER */
-        __raw_writew(0X264 , 0x4A00816C);
-        /* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
-        __raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
-
-        return;
+	show_splash_image((u_int16_t *)_binary_normalboot_rle_start, (u_int16_t *)_binary_normalboot_rle_end);
 }
 
 void show_recovery_splash(void)
 {
-        u_int16_t *target_addr = (u_int16_t *)framebuffer;
-        u_int16_t *start = (u_int16_t *)_binary_recoveryboot_rle_start;
-        u_int16_t *end = (u_int16_t *)_binary_recoveryboot_rle_end;
-
-        /* Convert the RLE data into RGB565 */
-        for (; start != end; start += 2) {
-                u_int16_t count = start[0];
-
-                while (count--) {
-                        *target_addr++ = start[1];
-                }
-        }
-
-        /* Compute position and size of logo */
-        g_LogoX = 0;
-        g_LogoY = 0;
-        g_LogoW = LCD_WIDTH;
-        g_LogoH = LCD_HEIGHT;
-		
-		
-        /* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
-        __raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
-        /* CM_SSC_DELTAMSTEP_DPLL_PER */
-        __raw_writew(0XCC , 0x4A008168);
-        /* CM_SSC_MODFREQDIV_DPLL_PER */
-        __raw_writew(0X264 , 0x4A00816C);
-        /* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
-        __raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
-
-        return;
+	show_splash_image((u_int16_t *)_binary_recoveryboot_rle_start, (u_int16_t *)_binary_recoveryboot_rle_end);
 }
 
 void show_boot2_splash(void)
 {
-        u_int16_t *target_addr = (u_int16_t *)framebuffer;
-        u_int16_t *start = (u_int16_t *)_binary_boot2_rle_start;
-        u_int16_t *end = (u_int16_t *)_binary_boot2_rle_end;
-
-        /* Convert the RLE data into RGB565 */
-        for (; start != end; start += 2) {
-                u_int16_t count = start[0];
-
-                while (count--) {
-                        *target_addr++ = start[1];
-                }
-        }
-
-        /* Compute position and size of logo */
-        g_LogoX = 0;
-        g_LogoY = 0;
-        g_LogoW = LCD_WIDTH;
-        g_LogoH = LCD_HEIGHT;
-
-
-        /* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
-        __raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
-        /* CM_SSC_DELTAMSTEP_DPLL_PER */
-        __raw_writew(0XCC , 0x4A008168);
-        /* CM_SSC_MODFREQDIV_DPLL_PER */
-        __raw_writew(0X264 , 0x4A00816C);
-        /* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
-        __raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
-
-        return;
+	show_splash_image((u_int16_t *)_binary_boot2_rle_start, (u_int16_t *)_binary_boot2_rle_end);
 }
 
 void show_booting_splash(void)
 {
-        u_int16_t *target_addr = (u_int16_t *)framebuffer;
-        u_int16_t *start = (u_int16_t *)_binary_booting_rle_start;
-        u_int16_t *end = (u_int16_t *)_binary_booting_rle_end;
+	//show_splash_image((u_int16_t *)_binary_booting_rle_start, (u_int16_t *)_binary_booting_rle_end);
+}
 
-        /* Convert the RLE data into RGB565 */
-        for (; start != end; start += 2) {
-                u_int16_t count = start[0];
-
-                while (count--) {
-                        *target_addr++ = start[1];
-                }
-        }
-
-        /* Compute position and size of logo */
-        g_LogoX = 0;
-        g_LogoY = 0;
-        g_LogoW = LCD_WIDTH;
-        g_LogoH = LCD_HEIGHT;
-
-
-        /* CM_DIV_M5_DPLL_PER Set bit8 = 1, force HSDIVIDER_CLKOUT2 clock enabled*/
-        __raw_writew(__raw_readw(0x4A00815C) | 0x100, 0x4A00815C);
-        /* CM_SSC_DELTAMSTEP_DPLL_PER */
-        __raw_writew(0XCC , 0x4A008168);
-        /* CM_SSC_MODFREQDIV_DPLL_PER */
-        __raw_writew(0X264 , 0x4A00816C);
-        /* CM_CLKMODE_DPLL_PER Set bit12 = 1, force DPLL_SSC_EN enabled*/
-        __raw_writew(__raw_readw(0x4A008140) | 0x1000 , 0x4A008140);
-
-        return;
+void show_reset_splash(void)
+{
+	show_splash_image((u_int16_t *)_binary_resetboot_rle_start, (u_int16_t *)_binary_resetboot_rle_end);
 }
 
 void showlogo(void){ //qvx_logo
